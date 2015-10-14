@@ -18,6 +18,8 @@
 
 @property (nonatomic, strong) NSArray *rowActionViews;
 
+@property (nonatomic, assign) CGFloat actionViewWidth;
+
 @end
 
 @implementation HYTTableViewCell
@@ -72,36 +74,44 @@
     if (delta == 0) return; //本次移动为0, 不操作
     
     //移动动画
-    [self moveByAnimationContentView:delta];
+    [self moveByAnimationView:delta];
     
     NSLog(@"touchesMoved:touches- delta:%f", delta);
     //设置最后一次移动X
     self.lastPointX = moveTouchX;
 }
 
-- (void)moveByAnimationContentView:(CGFloat)delta {
+- (void)moveByAnimationView:(CGFloat)deltaX {
 
     [UIView animateWithDuration:0.2 animations:^{
         //修改contentView的Frame
-        self.contentView.x = self.contentView.x + delta;
+        self.contentView.x = self.contentView.x + deltaX;
         
         //每个ActionView的移动量
-        CGFloat moveX = delta / self.rowActionViews.count;
+        CGFloat moveX = deltaX / self.rowActionViews.count;
         [self.rowActionViews enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
             
             NSAssert([obj isKindOfClass:[UIView class]], @"HYTTableViewCell-中的rowActionViews不为UIView及子控件");
             UIView *actionView = (UIView *)obj;
             actionView.x += (moveX * (idx+1));
-//            actionView.width = 101;
-//            actionView.width += (-moveX);
-            //修改Frame
-            CGRect actionViewFrame = actionView.frame;
-            CGFloat actionViewX = actionViewFrame.origin.x + moveX;
-            CGFloat actionViewY = actionViewFrame.origin.y;
-            CGFloat actionViewWidth = actionViewFrame.size.width + moveX;
-            CGFloat actionViewHeight = actionViewFrame.size.height;
-            
-            actionView.frame = CGRectMake(actionViewX, actionViewY, actionViewWidth, actionViewHeight);
+        }];
+    } completion:^(BOOL finished) {
+        
+    }];
+}
+
+- (void)moveToAnimationView:(CGFloat)locationX {
+    
+    [UIView animateWithDuration:0.2 animations:^{
+        //修改contentView的Frame
+        self.contentView.x = locationX;
+        
+        //每个ActionView的移动量
+        CGFloat moveX = locationX / self.rowActionViews.count;
+        [self.rowActionViews enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+            NSAssert([obj isKindOfClass:[UIView class]], @"HYTTableViewCell-中的rowActionViews不为UIView及子控件");
+            UIView *actionView = (UIView *)obj;
+            actionView.x = -locationX + -moveX*(2-idx);
         }];
     } completion:^(BOOL finished) {
         
@@ -113,6 +123,8 @@
     CGFloat endTouchX = [endTouch locationInView:self].x;
     self.lastPointX = endTouchX;
     [super touchesEnded:touches withEvent:event];
+    
+    [self moveToAnimationView:-160];
 }
 
 #pragma mark - 调整ActionView的显示位置
@@ -149,9 +161,24 @@
     
     [super layoutSubviews];
     NSLog(@"layoutSubviews -- %@", NSStringFromCGRect(self.contentView.frame));
+    
+    
     for (UIView *view in self.rowActionViews) {
+//        CGRect rect = view.frame;
+//        rect.size.width = self.width;
+//        
+//        view.frame = rect;
+
+        [view setOrigin:CGPointMake(CGRectGetWidth(self.contentView.frame), 0)];
+        [view setSize:CGSizeMake(100, CGRectGetHeight(self.contentView.frame))];
+        
         [self addSubview:view];
     }
+    
+    [self.rowActionViews enumerateObjectsWithOptions:NSEnumerationReverse
+                                          usingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+                                              [self addSubview:obj];
+                                          }];
     
 }
 
