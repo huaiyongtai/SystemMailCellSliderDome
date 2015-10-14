@@ -44,18 +44,11 @@
 }
 
 - (void)setDelegate:(id<HYTTableViewCellDelegate>)delegate {
-    
     _delegate = delegate;
     
     if ([self.delegate respondsToSelector:@selector(tableViewCell:)]) {
         self.rowActionViews = [self.delegate tableViewCell:self];
     }
-    
-//    for (UIView *view in self.rowActionViews) {
-//        [view setOrigin:CGPointMake(CGRectGetMaxX(self.contentView.frame), 0)];
-//        [view setSize:CGSizeMake(0, CGRectGetHeight(self.contentView.frame))];
-//        [self addSubview:view];
-//    }
 }
 
 #pragma mark - touch事件拖动监听
@@ -84,13 +77,11 @@
     NSLog(@"touchesMoved:touches- delta:%f", delta);
     //设置最后一次移动X
     self.lastPointX = moveTouchX;
-    
 }
 
 - (void)moveByAnimationContentView:(CGFloat)delta {
 
     [UIView animateWithDuration:0.2 animations:^{
-        
         //修改contentView的Frame
         self.contentView.x = self.contentView.x + delta;
         
@@ -101,7 +92,7 @@
             NSAssert([obj isKindOfClass:[UIView class]], @"HYTTableViewCell-中的rowActionViews不为UIView及子控件");
             UIView *actionView = (UIView *)obj;
             actionView.x += (moveX * (idx+1));
-            actionView.width = 101;
+//            actionView.width = 101;
 //            actionView.width += (-moveX);
             //修改Frame
             CGRect actionViewFrame = actionView.frame;
@@ -110,7 +101,7 @@
             CGFloat actionViewWidth = actionViewFrame.size.width + moveX;
             CGFloat actionViewHeight = actionViewFrame.size.height;
             
-//            actionView.frame = CGRectMake(actionViewX, actionViewY, actionViewWidth, actionViewHeight);
+            actionView.frame = CGRectMake(actionViewX, actionViewY, actionViewWidth, actionViewHeight);
         }];
     } completion:^(BOOL finished) {
         
@@ -124,12 +115,10 @@
     [super touchesEnded:touches withEvent:event];
 }
 
-
 #pragma mark - 调整ActionView的显示位置
 - (void)autoAdjustDisplayPosition {
     
 }
-
 
 #pragma mark - 手势拖动监听
 - (void)dragGestureRecognizern:(UIPanGestureRecognizer *)panGestureRecoginzer {
@@ -158,15 +147,12 @@
 #pragma mark -
 - (void)layoutSubviews {
     
-    
-    NSLog(@"layoutSubviews");
     [super layoutSubviews];
-//    self.contentView.x = -0;
+    NSLog(@"layoutSubviews -- %@", NSStringFromCGRect(self.contentView.frame));
     for (UIView *view in self.rowActionViews) {
-        [view setOrigin:CGPointMake(CGRectGetMaxX(self.contentView.frame), 0)];
-        [view setSize:CGSizeMake(100, CGRectGetHeight(self.contentView.frame))];
         [self addSubview:view];
     }
+    
 }
 
 
