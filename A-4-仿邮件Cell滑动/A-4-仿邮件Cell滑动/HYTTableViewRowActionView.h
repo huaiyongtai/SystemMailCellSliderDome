@@ -10,12 +10,35 @@
 
 @class HYTTableViewRowActionView;
 
-@interface HYTTableViewRowActionView : UIButton
+@interface HYTTableViewRowActionView : UIView
 
+/**
+ *  显示的标题
+ */
 @property (nonatomic, copy) NSString *title;
-@property (nonatomic, copy) UIColor *backgroundColor; // default background color is dependent on style
-@property (nonatomic, copy) UIVisualEffect* backgroundEffect;
 
-+ (instancetype)rowActionViewWithTitle:(NSString *)title handler:(void (^)(HYTTableViewRowActionView *action, NSIndexPath *indexPath))block;
+/**
+ *  标题颜色
+ */
+@property (nonatomic, strong) UIColor *titleColor;
 
+/**
+ *  内容颜色
+ */
+@property (nonatomic, strong) UIColor *contentColor;
+
+/**
+ *  内容的宽度
+ */
+@property (nonatomic, assign, readonly) CGFloat contentViewWidth;
+
+/**
+ *  用户自定义View
+ */
+@property (nonatomic, strong) UIView *customView;
+
+
+
++ (instancetype)rowActionViewWithTitle:(NSString *)title handler:(void (^)(HYTTableViewRowActionView *action, NSIndexPath *indexPath))handler;
+- (instancetype)initWithWithTitle:(NSString *)title handler:(void (^)(HYTTableViewRowActionView *action, NSIndexPath *indexPath))handler;
 @end

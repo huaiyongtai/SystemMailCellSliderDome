@@ -8,12 +8,7 @@
 
 #import "HYTTableViewCell.h"
 #import "UIView+Extension.h"
-
-typedef NS_ENUM(NSInteger, CellMoveDirectionType) {
-    CellMoveDirectionHorizontalDefault, //默认移动方向水平
-    CellMoveDirectionHorizontalRight,   //移动方向水平向右
-    CellMoveDirectionHorizontalLeft = CellMoveDirectionHorizontalDefault //移动方向水平向做
-};
+#import "HYTTableViewRowActionView.h"
 
 typedef NS_ENUM(NSInteger, CellSpreadState) {
     CellSpreadStateDefault,     //默认展开关闭
@@ -38,17 +33,7 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
 /**
  *  展开的宽度值
  */
-@property (nonatomic, assign) CGFloat spreadWidth;
-
-/**
- *  actionView的Rect
- */
-@property (nonatomic, assign) CGRect actionViewRect;
-
-/**
- *  contentView的X值
- */
-@property (nonatomic, assign) CGFloat contentViewX;
+@property (nonatomic, assign) CGFloat actionViewsOpenWidth;
 
 /**
  *  打开ActionView的范围
@@ -62,7 +47,6 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
 
 @implementation HYTTableViewCell
 
-
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     
     if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
@@ -72,23 +56,30 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
         [self.contentView addSubview:view];
         
         _spreadState = CellSpreadStateDefault;
-        
-        _actionViewRect = CGRectMake(CGRectGetMaxX(self.contentView.frame), 0, 100, CGRectGetHeight(self.contentView.frame));
-        _spreadWidth = [UIScreen mainScreen].bounds.size.width * 0.5;
-        _actionViewMin = [UIScreen mainScreen].bounds.size.width * 0.1;
+        _actionViewMin = [UIScreen mainScreen].bounds.size.width * 0.2;
         _actionViewMax = [UIScreen mainScreen].bounds.size.width * 0.8;
-        
         
         [self.contentView setBackgroundColor:[UIColor grayColor]];
         [self.contentView setBackgroundColor:[UIColor colorWithRed:arc4random_uniform(255)/255.0 green:arc4random_uniform(255)/255.0 blue:arc4random_uniform(255)/255.0 alpha:1]];
-        //为Cell添加手势
         
+        //为Cell添加手势
         /****************************给tableViewCell添加手势***************************/
         //其他手势都可以，唯不能添加UIPanGestureRecognizer这个手势，将和tableView滑动冲突
 //        [self addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(dragGestureRecognizern:)]];
     }
     
     return self;
+}
+
+- (CGFloat)actionViewsOpenWidth {
+    
+    __block CGFloat openWidth = 0;
+    [self.rowActionViews enumerateObjectsUsingBlock:^(HYTTableViewRowActionView *actionView, NSUInteger idx, BOOL *stop) {
+        NSAssert([actionView isKindOfClass:[HYTTableViewRowActionView class]], @"%@, %@ 不是HYTTableViewRowActionView", NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+        openWidth += actionView.contentViewWidth;
+    }];
+    
+    return openWidth;
 }
 
 - (NSArray *)rowActionViews {
@@ -108,7 +99,6 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
 
 #pragma mark - touch事件拖动监听
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    
     NSLog(@"%@", NSStringFromSelector(_cmd));
     UITouch *beginTouch = [touches anyObject];
     CGFloat beginTouchX = [beginTouch locationInView:self].x;
@@ -116,21 +106,20 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-
+    
     UITouch *moveTouch = [touches anyObject];
     CGFloat moveTouchX = [moveTouch locationInView:self].x;
     CGFloat delta = moveTouchX - self.lastPointX;
     if (delta == 0) return; //本次移动为0, 不操作
     
     //移动动画
-    [self animationMoveBy:delta];
+    CGFloat offsetContentViewX = self.contentView.x + delta;
+    [self animationMoveTo:offsetContentViewX];
     
     NSLog(@"touchesMoved:touches- delta:%f", delta);
     //设置最后一次移动X
     self.lastPointX = moveTouchX;
 }
-
-
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     UITouch *endTouch = [touches anyObject];
@@ -157,7 +146,6 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
 - (void)setSpreadState:(CellSpreadState)spreadState {
     
     _spreadState = spreadState;
-
     //动画展示
     CGFloat slideX = 0;
     switch (spreadState) {
@@ -166,7 +154,7 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
             break;
         }
         case CellSpreadStateOpen: {
-            slideX = - self.spreadWidth;
+            slideX = - self.actionViewsOpenWidth;
             break;
         }
         case CellSpreadStateDeleteSpread: {
@@ -180,37 +168,6 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
     [self animationMoveTo:slideX];
 }
 
-//在上次的基础上移动deltaX值
-- (void)animationMoveBy:(CGFloat)deltaX {
-    NSLog(@"animationMoveBy:%f", deltaX);
-    [UIView animateWithDuration:0.2 animations:^{
-        //修改contentView的Frame
-        self.contentView.x += deltaX;
-        self.contentViewX = self.contentView.x;;
-        //每个ActionView的移动量
-        CGFloat moveX = deltaX / self.rowActionViews.count;
-        [self.rowActionViews enumerateObjectsUsingBlock:^(UIView *actionView, NSUInteger idx, BOOL *stop) {
-            NSAssert([actionView isKindOfClass:[UIView class]], @"HYTTableViewCell-中的rowActionViews不为UIView及子控件");
-            
-            //ContentView的最大X值判断是否展开
-            actionView.x += (moveX * (idx+1));
-            
-            
-            CGFloat contentViewMaxX = CGRectGetMaxX(self.contentView.frame);
-            if (contentViewMaxX > self.actionViewMin) {
-                actionView.width = 100;
-                
-            } else {
-                actionView.x = CGRectGetMaxX(self.contentView.frame);
-                actionView.width = self.width - actionView.x;
-            }
-            
-            self.actionViewRect = actionView.frame;
-        }];
-    } completion:^(BOOL finished) {
-    }];
-}
-
 //移动到指定的X值
 - (void)animationMoveTo:(CGFloat)loactionX {
     
@@ -218,98 +175,57 @@ typedef NS_ENUM(NSInteger, CellSpreadState) {
     [UIView animateWithDuration:0.2 animations:^{
         //修改contentView的Frame
         self.contentView.x = loactionX;
-        self.contentViewX = loactionX;
-        NSInteger actionViewsCount = self.rowActionViews.count;
         
-        //每个ActionView的移动量
-        CGFloat moveX = loactionX / actionViewsCount;
-        [self.rowActionViews enumerateObjectsUsingBlock:^(UIView *actionView, NSUInteger idx, BOOL *stop) {
-            NSAssert([actionView isKindOfClass:[UIView class]], @"HYTTableViewCell-方法%@中的rowActionViews不为UIView及子控件", NSStringFromSelector(_cmd));
-            actionView.x = CGRectGetMaxX(self.contentView.frame) - moveX*((actionViewsCount-1)-idx);
-            
-//            if () {
-//                <#statements#>
-//            }
-            
-//            actionView.width = moveX;
-            //ContentView的最大X值判断是否展开
-            CGFloat contentViewMaxX = CGRectGetMaxX(self.contentView.frame);
-            if (contentViewMaxX < self.actionViewMin && idx == 0) {
-                actionView.x = CGRectGetMaxX(self.contentView.frame);
-                actionView.width = self.width - actionView.x;
-            }
-            
-            self.actionViewRect = actionView.frame;
-        }];
+        //移动ActionView
+        [self moveActionViewFollowContentView];
     } completion:^(BOOL finished) {
-        
+        if (self.spreadState ==   CellSpreadStateDeleteSpread) {
+            self.frame = CGRectZero;
+        }
     }];
-
 }
 
-
-#pragma mark - 调整ActionView的显示位置
-- (void)autoAdjustDisplayPosition {
+//让AtionView跟随ContentView移动
+- (void)moveActionViewFollowContentView {
     
-}
-
-#pragma mark - 手势拖动监听
-- (void)dragGestureRecognizern:(UIPanGestureRecognizer *)panGestureRecoginzer {
-    
-    //本次拖拽偏移量
-    CGFloat deltaX = [panGestureRecoginzer translationInView:panGestureRecoginzer.view].x;
-    
-    
-    if (panGestureRecoginzer.state == UIGestureRecognizerStateBegan) {
+    NSInteger actionViewsCount = self.rowActionViews.count;
+    //每个ActionView的移动量
+    CGFloat contentViewMaxX = CGRectGetMaxX(self.contentView.frame);
+    CGFloat actionViewWidth = (self.width - contentViewMaxX)/actionViewsCount;
+    [self.rowActionViews enumerateObjectsUsingBlock:^(HYTTableViewRowActionView *actionView, NSUInteger idx, BOOL *stop) {
         
-        
-    } else if (panGestureRecoginzer.state == UIGestureRecognizerStateChanged) {
-        
-        self.contentView.x = self.contentView.x + deltaX;
-//        [self setFrame:CGRectMake(-50, 100, self.bounds.size.width, self.bounds.size.height)];
+        actionView.x = self.width - actionViewWidth*(idx+1);
 
-    } else if (panGestureRecoginzer.state == UIGestureRecognizerStateEnded) {
-
+        if (contentViewMaxX < self.actionViewMin) {
+            actionView.x = contentViewMaxX;
+            *stop = YES;
+        }
         
-    }
-    
-    //清楚本次拖动值
-    [panGestureRecoginzer setTranslation:CGPointZero inView:panGestureRecoginzer.view];
+//        CGFloat offsetActionViewX = self.actionViewsOpenWidth - actionView.contentViewWidth;
+//        if (contentViewMaxX == self.actionViewsOpenWidth) {
+//            
+//            actionView.x = self.width - (self.actionViewsOpenWidth - actionView.contentViewWidth);
+//            
+//            
+//            
+//        }
+    }];
 }
 
 #pragma mark -
 - (void)layoutSubviews {
     
     [super layoutSubviews];
-    
-    NSLog(@"layoutSubviews contentView-- %@", NSStringFromCGRect(self.contentView.frame));
-    
     /**注意
      1.有子控件添加到View上，将调用
      2.当子控件的Width或者Height改变时调用（x, y改变时不调用）
      */
-    
     //切记要在这里初始化子控件的位置
-    self.contentView.x = self.contentViewX;
-        
+    self.contentView.x = 0;
+    
     [self.rowActionViews enumerateObjectsUsingBlock:^(UIView *actionView, NSUInteger idx, BOOL *stop) {
-        NSAssert([actionView isKindOfClass:[UIView class]], @"%@, %@ 中 加入了一个不是UIView", NSStringFromClass([self class]), NSStringFromSelector(_cmd));
-        
-//        if (self.spreadState == CellSpreadStateDeleteSpread) {
-//            [UIView animateWithDuration:0.2 animations:^{
-//                actionView.frame = self.actionViewRect;
-//            } completion:^(BOOL finished) {
-//                
-////                    actionView.frame = CGRectZero;
-//                
-//            }];
-//            *stop = YES;
-//        }
-        actionView.frame = self.actionViewRect;
+        [actionView setFrame:CGRectMake(self.width, 0, self.width, self.height)];
     }];
     
 }
-
-
-
 @end

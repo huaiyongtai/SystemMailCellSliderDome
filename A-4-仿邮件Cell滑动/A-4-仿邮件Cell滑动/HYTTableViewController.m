@@ -80,7 +80,7 @@
                                                                                            handler:^(HYTTableViewRowActionView *action, NSIndexPath *indexPath) {
         
                                                                                            }];
-    HYTTableViewRowActionView *collectRowAction = [HYTTableViewRowActionView rowActionViewWithTitle:@"收藏"
+    HYTTableViewRowActionView *collectRowAction = [HYTTableViewRowActionView rowActionViewWithTitle:@"快快收藏"
                                                                                            handler:^(HYTTableViewRowActionView *action, NSIndexPath *indexPath) {
                                                                                                
                                                                                            }];
