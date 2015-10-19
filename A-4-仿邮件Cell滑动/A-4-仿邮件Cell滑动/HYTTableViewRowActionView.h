@@ -28,11 +28,6 @@
 @property (nonatomic, strong) UIColor *contentColor;
 
 /**
- *  内容的宽度
- */
-@property (nonatomic, assign, readonly) CGFloat contentViewWidth;
-
-/**
  *  用户自定义View
  */
 @property (nonatomic, strong) UIView *customView;

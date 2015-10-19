@@ -82,11 +82,6 @@ static const CGFloat kContentViewMargin = 10;
     NSLog(@"%@", self.title);
 }
 
-//返回contentView的宽度
-- (CGFloat)contentViewWidth {
-    if (self.contentView == nil) return 0;
-    return self.contentView.bounds.size.width;
-}
 - (void)layoutSubviews {
     
     [super layoutSubviews];
